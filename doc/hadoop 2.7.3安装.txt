@@ -1,0 +1,235 @@
+﻿安装过程参考：http://www.powerxing.com/install-hadoop/
+
+以下是在ubuntu 14.04.1上面安装, 我的ubuntu是安装在vmware中的，运行得有点慢。
+
+要安装 hadoop，首先要安装JDK，这里安装jdk1.7.0_45， 参考JDK安装方法, 这里略
+将JDK安装到：/usr/lib/jvm/jdk1.7.0_45, 记住这个路径, 在下面配置hadoop的时候要用到。
+
+安装ssh openssh rsync
+命令如下：
+sudo apt-get install ssh openssh-server rsync
+
+如果上述命令无法执行，请先执行如下命令：
+sudo apt-get update
+
+如果你安装 Ubuntu 的时候不是用的 “hadoop” 用户，那么需要增加一个名为 hadoop 的用户。
+创建hadoop用户，并配置ssh登录：
+sudo useradd -g root -m hadoop
+sudo passwd hadoop # 命令设置密码，可简单设置为 hadoop，按提示输入两次密码：
+sudo adduser hadoop sudo # 为 hadoop 用户增加管理员权限，方便部署，避免一些对新手来说比较棘手的权限问题：
+
+配置SSH无密码登陆
+su - hadoop
+ssh-keygen -t rsa -P ""
+cd ~/.ssh
+cat id_rsa.pub >> authorized_keys
+运行ssh hadoop@localhost不提示输入密码则配置成功。
+
+
+安装Hadoop
+下载hadoop并解压缩
+su - hadoop
+cd 
+wget http://www.apache.org/dyn/closer.cgi/hadoop/common/hadoop-2.7.3/hadoop-2.7.3.tar.gz
+wget https://dist.apache.org/repos/dist/release/hadoop/common/hadoop-2.7.3/hadoop-2.7.3.tar.gz.mds
+
+#验证下载的文件是否有误
+cat hadoop-2.7.3.tar.gz.mds | grep SHA256
+#输出为：hadoop-2.7.3.tar.gz: SHA256 = D489DF38 08244B90 6EB38F4D 081BA49E 50C4603D B03EFD5E 594A1E98 B09259C2
+shasum -a 256 hadoop-2.7.3.tar.gz | tr "a-z" "A-Z"
+#输出为：D489DF3808244B906EB38F4D081BA49E50C4603DB03EFD5E594A1E98B09259C2  HADOOP-2.7.3.TAR.GZ
+# 可以看到，验证码一样，证明我们下载的文件无误
+
+#解压, 选择将 Hadoop 安装至 /usr/local/ 中：
+tar xzf hadoop-2.7.3.tar.gz
+sudo mv hadoop-2.7.3 /usr/local/
+sudo chmod -R 755 /usr/local/hadoop-2.7.3/
+sudo chown -R hadoop:root /usr/local/hadoop-2.7.3/
+
+Hadoop 解压后即可使用。输入如下命令来检查 Hadoop 是否可用，成功则会显示 Hadoop 版本信息：
+cd /usr/local/hadoop-2.7.3
+./bin/hadoop version
+
+为Hadoop设置JAVA_HOME环境变量，
+vi etc/hadoop/hadoop-env.sh
+# JAVA_HOME应当使用绝对路径。
+# export JAVA_HOME=$JAVA_HOME                //错误，不能这么改
+export JAVA_HOME=/usr/lib/jvm/jdk1.7.0_45    //正确，应该这么改
+
+===========================================================
+备选, 可不看：配置环境变量：
+运行sudo vi /etc/profile.d/hadoop.sh并输入如下内容。
+export JAVA_HOME=/usr/lib/jvm/jdk1.7.0_45
+export HADOOP_HOME=/usr/local/hadoop-2.7.3
+export PATH=PATH:HADOOP_HOME/bin:HADOOP_HOME/sbin
+
+然后运行指令source /etc/profile使配置生效。
+===========================================================
+
+配置好JAVA_HOME后，执行
+./bin/hadoop可以验证下
+
+1. Hadoop单机配置
+cd /usr/local/hadoop-2.7.3
+mkdir input
+cp etc/hadoop/*.xml input
+./bin/hadoop jar share/hadoop/mapreduce/hadoop-mapreduce-examples-2.7.3.jar grep input output 'dfs[a-z.]+'
+cat output/*
+
+输出结果为：
+1	dfsadmin
+
+注意，Hadoop 默认不会覆盖结果文件，因此再次运行上面实例会提示出错，需要先将 ./output 删除。
+
+2. Hadoop伪分布
+Hadoop 可以在单节点上以伪分布式的方式运行，Hadoop 进程以分离的 Java 进程来运行，节点既作为 NameNode 也作为 DataNode，同时，读取的是 HDFS 中的文件。
+
+Hadoop 的配置文件位于 /usr/local/hadoop-2.7.3/etc/hadoop/ 中，伪分布式需要修改2个配置文件 core-site.xml 和 hdfs-site.xml 。Hadoop的配置文件是 xml 格式，每个配置以声明 property 的 name 和 value 的方式来实现。
+
+vi etc/hadoop/core-site.xml 
+<configuration>
+        <property>
+             <name>hadoop.tmp.dir</name>
+             <value>file:/usr/local/hadoop-2.7.3/tmp</value>
+             <description>Abase for other temporary directories.</description>
+        </property>
+        <property>
+             <name>fs.defaultFS</name>
+             <value>hdfs://localhost:9000</value>
+        </property>
+</configuration>
+
+vi etc/hadoop/hdfs-site.xml
+<configuration>
+        <property>
+             <name>dfs.replication</name>
+             <value>1</value>
+        </property>
+        <property>
+             <name>dfs.namenode.name.dir</name>
+             <value>file:/usr/local/hadoop-2.7.3/tmp/dfs/name</value>
+        </property>
+        <property>
+             <name>dfs.datanode.data.dir</name>
+             <value>file:/usr/local/hadoop-2.7.3/tmp/dfs/data</value>
+        </property>
+</configuration>
+
+配置完成后，首先在Hadoop目录下创建所需的临时目录：
+cd /usr/local/hadoop-2.7.3
+mkdir -p tmp/dfs/name tmp/dfs/data
+
+Hadoop配置文件说明
+Hadoop 的运行方式是由配置文件决定的（运行 Hadoop 时会读取配置文件），因此如果需要从伪分布式模式切换回非分布式模式，需要删除 core-site.xml 中的配置项。
+
+此外，伪分布式虽然只需要配置 fs.defaultFS 和 dfs.replication 就可以运行（官方教程如此），不过若没有配置 hadoop.tmp.dir 参数，则默认使用的临时目录为 /tmp/hadoo-hadoop，而这个目录在重启时有可能被系统清理掉，导致必须重新执行 format 才行。所以我们进行了设置，同时也指定 dfs.namenode.name.dir 和 dfs.datanode.data.dir，否则在接下来的步骤中可能会出错。
+
+然后初始化并启动集群
+./bin/hdfs namenode -format
+./sbin/start-dfs.sh
+
+可以在浏览器中输入：http://localhost:50070/来查看是否启动成功。
+启动完成后，可以通过命令 jps 来判断是否成功启动，若成功启动则会列出如下进程: “NameNode”、”DataNode” 和 “SecondaryNameNode”（如果 SecondaryNameNode 没有启动，请运行 sbin/stop-dfs.sh 关闭进程，然后再次尝试启动尝试）。如果没有 NameNode 或 DataNode ，那就是配置不成功，请仔细检查之前步骤，或通过查看启动日志排查原因。
+
+运行Hadoop伪分布式实例
+上面的单机模式，grep 例子读取的是本地数据，伪分布式读取的则是 HDFS 上的数据。要使用 HDFS，首先需要在 HDFS 中创建用户目录：
+cd /usr/local/hadoop-2.7.3
+bin/hdfs dfs -mkdir -p /user/hadoop/input
+
+# 接着将 ./etc/hadoop 中的 xml 文件作为输入文件复制到分布式文件系统中，即将 /usr/local/hadoop/etc/hadoop 复制到分布式文件系统中的 /user/hadoop/input 中。
+bin/hdfs dfs -put etc/hadoop/* /user/hadoop/input
+
+#复制完成后，可以通过如下命令查看文件列表：
+./bin/hdfs dfs -ls /user/hadoop/input
+
+伪分布式运行 MapReduce 作业的方式跟单机模式相同，区别在于伪分布式读取的是HDFS中的文件（可以将单机步骤中创建的本地 input 文件夹，输出结果 output 文件夹都删掉来验证这一点）。
+rm -rf input output
+
+# 执行map reduce
+./bin/hadoop jar share/hadoop/mapreduce/hadoop-mapreduce-examples-2.7.3.jar grep /user/hadoop/input /user/hadoop/output 'dfs[a-z.]+'
+
+# 查看运行结果的命令（查看的是位于 HDFS 中的输出结果）：
+./bin/hdfs dfs -cat /user/hadoop/output/*
+
+# 我们也可以将运行结果取回到本地：
+rm -r ./output    # 先删除本地的 output 文件夹（如果存在）
+./bin/hdfs dfs -get /user/hadoop/output ./output     # 将 HDFS 上的 output 文件夹拷贝到本机
+cat ./output/*
+
+若要关闭 Hadoop，则运行
+sbin/stop-dfs.sh
+
+
+启动YARN（伪分布式不启动 YARN 也可以，一般不会影响程序执行）
+首先修改配置文件 mapred-site.xml，这边需要先进行重命名（为什么要重命名而不是复制一份，下面会讲）：
+mv etc/hadoop/mapred-site.xml.template etc/hadoop/mapred-site.xml
+
+vi etc/hadoop/mapred-site.xml 
+<configuration>
+    <property>
+        <name>mapreduce.framework.name</name>
+        <value>yarn</value>
+    </property>
+</configuration>
+
+vi etc/hadoop/yarn-site.xml
+<configuration>
+    <property>
+        <name>yarn.nodemanager.aux-services</name>
+        <value>mapreduce_shuffle</value>
+    </property>
+</configuration>
+
+然后就可以启动 YARN 了（需要先执行过 ./sbin/start-dfs.sh）
+YARN 是从 MapReduce 中分离出来的，负责资源管理与任务调度。YARN 运行于 MapReduce 之上，提供了高可用性、高扩展性，YARN 的更多介绍在此不展开，有兴趣的可查阅相关资料。
+
+
+./sbin/start-yarn.sh      # 启动YARN
+./sbin/mr-jobhistory-daemon.sh start historyserver  # 开启历史服务器，才能在Web中查看任务运行情况
+
+开启后通过 jps 查看，可以看到多了 NodeManager 和 ResourceManager 两个后台进程
+
+# Browse the web interface for the ResourceManager; by default it is available at:
+http://localhost:8088/
+
+
+# When you’re done, stop the daemons with:
+./sbin/stop-yarn.sh
+./sbin/mr-jobhistory-daemon.sh stop historyserver
+
+
+至此，hadoop 已经安装完毕
+
+附说明：
+启动 Hadoop 时提示 Could not resolve hostname
+这个并不是 ssh 的问题，可通过设置 Hadoop 环境变量来解决。首先按键盘的 ctrl + c 中断启动，然后在 ~/.bashrc 中，增加如下两行内容（设置过程与 JAVA_HOME 变量一样，其中 HADOOP_HOME 为 Hadoop 的安装目录）：
+export HADOOP_HOME=/usr/local/hadoop-2.7.3
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+保存后，务必执行 source ~/.bashrc 使变量设置生效，然后再次执行 ./sbin/start-dfs.sh 启动 Hadoop。
+
+
+Hadoop无法正常启动的解决方法
+# 针对 DataNode 没法启动的解决方法
+./sbin/stop-dfs.sh   # 关闭
+rm -r ./tmp     # 删除 tmp 文件，注意这会删除 HDFS 中原有的所有数据
+./bin/hdfs namenode -format   # 重新格式化 NameNode
+./sbin/start-dfs.sh  # 重启
+
+
+Hadoop 运行程序时，输出目录不能存在，否则会提示错误 “org.apache.hadoop.mapred.FileAlreadyExistsException: Output directory hdfs://localhost:9000/user/hadoop/output already exists” ，因此若要再次执行，需要执行如下命令删除 output 文件夹:
+./bin/hdfs dfs -rm -r /user/hadoop/output    # 删除 output 文件夹
+
+运行程序时，输出目录不能存在
+运行 Hadoop 程序时，为了防止覆盖结果，程序指定的输出目录（如 output）不能存在，否则会提示错误，因此运行前需要先删除输出目录。在实际开发应用程序时，可考虑在程序中加上如下代码，能在每次运行时自动删除输出目录，避免繁琐的命令行操作：
+Configuration conf = new Configuration();
+Job job = new Job(conf);
+ 
+/* 删除输出目录 */
+Path outputPath = new Path(args[1]);
+outputPath.getFileSystem(conf).delete(outputPath, true);
+
+
+不启动 YARN 需重命名 mapred-site.xml
+如果不想启动 YARN，务必把配置文件 mapred-site.xml 重命名，改成 mapred-site.xml.template，需要用时改回来就行。否则在该配置文件存在，而未开启 YARN 的情况下，运行程序会提示 “Retrying connect to server: 0.0.0.0/0.0.0.0:8032” 的错误，这也是为何该配置文件初始文件名为 mapred-site.xml.template。
+
+
