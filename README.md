@@ -1,2 +1,2 @@
 # hadoop-learn
-my hadoop learn note
+My hadoop learn note
