@@ -30,8 +30,13 @@ cat id_rsa.pub >> authorized_keys
 下载hadoop并解压缩
 su - hadoop
 cd 
-wget http://www.apache.org/dyn/closer.cgi/hadoop/common/hadoop-2.7.3/hadoop-2.7.3.tar.gz
-wget https://dist.apache.org/repos/dist/release/hadoop/common/hadoop-2.7.3/hadoop-2.7.3.tar.gz.mds
+
+到下面的网站：
+http://archive.apache.org/dist/hadoop/core/hadoop-2.7.3/
+
+下载两个文件，可以使用`wget`命令:
+hadoop-2.7.3.tar.gz
+hadoop-2.7.3.tar.gz.mds
 
 #验证下载的文件是否有误
 cat hadoop-2.7.3.tar.gz.mds | grep SHA256
