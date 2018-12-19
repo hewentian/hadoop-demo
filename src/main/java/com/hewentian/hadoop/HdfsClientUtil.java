@@ -5,11 +5,10 @@ import org.apache.hadoop.fs.*;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.log4j.Logger;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -19,7 +18,7 @@ import java.util.Map;
  * </p>
  *
  * @author <a href="mailto:wentian.he@qq.com">hewentian</a>
- * @date 2018-12-09 13:59
+ * @date 2018-12-09 13:59:18
  * @since JDK 1.8
  */
 public class HdfsClientUtil {
@@ -36,6 +35,7 @@ public class HdfsClientUtil {
 
         try {
             // 最后的hadoop表示的是hadoop集群安装的Linux用户
+            // 不提供用户名也可以，但是要在 hdfs-site.xml 中将 dfs.permissions.enabled 设为 false
             fileSystem = FileSystem.get(new URI("hdfs://hadoop-host-master:9000"), conf, "hadoop");
         } catch (Exception e) {
             log.error(e.getMessage(), e);
@@ -264,6 +264,26 @@ public class HdfsClientUtil {
         }
     }
 
+    /**
+     * 通过URL方式来读取HDFS文件内容
+     *
+     * @param urlStr
+     * @throws Exception
+     */
+    public static void catFileByURL(String urlStr) throws Exception {
+        URL.setURLStreamHandlerFactory(new FsUrlStreamHandlerFactory());
+        URL url = new URL(urlStr);
+        InputStream inputStream = url.openStream();
+
+        try {
+            IOUtils.copyBytes(inputStream, System.out, 4096, true);
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            inputStream.close();
+        }
+    }
+
     public static void main(String[] args) {
         try {
 //            mkdirs("/hewentian");
@@ -283,6 +303,7 @@ public class HdfsClientUtil {
 //            check("/hewentian/README.txt");
 //showAllConf();
 //        copyFileBwtweenHdfs("/hewentian/README.txt","/hewentian/README2.txt");
+            catFileByURL("hdfs://hadoop-host-master:9000/hewentian/README.txt");
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         } finally {
