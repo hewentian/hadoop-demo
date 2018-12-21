@@ -11,7 +11,7 @@ import org.apache.hadoop.mapred.JobConf;
 
 /**
  * <p>
- * <b>WordCountJob</b> 是
+ * <b>WordCountJob</b> 是 统计一个文件中单词个数的Job
  * </p>
  *
  * @author <a href="mailto:wentian.he@qq.com">hewentian</a>
