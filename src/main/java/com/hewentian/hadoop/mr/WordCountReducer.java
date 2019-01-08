@@ -2,13 +2,9 @@ package com.hewentian.hadoop.mr;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reducer;
-import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.Iterator;
 
 /**
  * <p>
@@ -19,14 +15,14 @@ import java.util.Iterator;
  * @date 2018-12-18 23:47:12
  * @since JDK 1.8
  */
-public class WordCountReducer extends MapReduceBase implements Reducer<Text, IntWritable, Text, IntWritable> {
+public class WordCountReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
     @Override
-    public void reduce(Text key, Iterator<IntWritable> values, OutputCollector<Text, IntWritable> outputCollector, Reporter reporter) throws IOException {
+    protected void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
         int sum = 0;
-        while (values.hasNext()) {
-            sum += values.next().get();
+        for (IntWritable i : values) {
+            sum += i.get();
         }
 
-        outputCollector.collect(key, new IntWritable(sum));
+        context.write(key, new IntWritable(sum));
     }
 }

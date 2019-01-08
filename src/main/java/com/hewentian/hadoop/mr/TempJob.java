@@ -4,10 +4,13 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.*;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import java.io.IOException;
-import java.util.Iterator;
 
 /**
  * <p>
@@ -46,14 +49,14 @@ import java.util.Iterator;
  * $
  * $ ./bin/hdfs dfs -cat /output/temp/*
  * TempKeyPair{year=2016, temp=36}	2016-10-02 14:01:03 36
- * TempKeyPair{year=2016, temp=36}	2016-10-01 12:21:05 34
+ * TempKeyPair{year=2016, temp=34}	2016-10-01 12:21:05 34
  * TempKeyPair{year=2017, temp=41}	2017-10-02 12:21:02 41
- * TempKeyPair{year=2017, temp=41}	2017-10-01 12:21:02 37
- * TempKeyPair{year=2017, temp=41}	2017-01-01 10:31:12 32
- * TempKeyPair{year=2017, temp=41}	2017-10-03 12:21:02 27
+ * TempKeyPair{year=2017, temp=37}	2017-10-01 12:21:02 37
+ * TempKeyPair{year=2017, temp=32}	2017-01-01 10:31:12 32
+ * TempKeyPair{year=2017, temp=27}	2017-10-03 12:21:02 27
  * TempKeyPair{year=2018, temp=46}	2018-07-02 12:21:02 46
- * TempKeyPair{year=2018, temp=46}	2018-01-01 12:21:02 45
- * TempKeyPair{year=2018, temp=46}	2018-12-01 12:21:02 23
+ * TempKeyPair{year=2018, temp=45}	2018-01-01 12:21:02 45
+ * TempKeyPair{year=2018, temp=23}	2018-12-01 12:21:02 23
  * $
  * $ ./bin/hdfs dfs -cat /output/temp/part-00000
  * TempKeyPair{year=2016, temp=36}	2016-10-02 14:01:03 36
@@ -65,9 +68,9 @@ import java.util.Iterator;
  * @since JDK 1.8
  */
 public class TempJob {
-    static class TempMapper extends MapReduceBase implements Mapper<LongWritable, Text, TempKeyPair, Text> {
+    static class TempMapper extends Mapper<LongWritable, Text, TempKeyPair, Text> {
         @Override
-        public void map(LongWritable key, Text value, OutputCollector<TempKeyPair, Text> outputCollector, Reporter reporter) throws IOException {
+        protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             String line = value.toString();
             if (StringUtils.isNotBlank(line)) {
                 String[] ss = line.split(" ");
@@ -78,44 +81,49 @@ public class TempJob {
                     tempKeyPair.setYear(Integer.parseInt(date.split("-")[0]));
                     tempKeyPair.setTemp(Integer.parseInt(ss[2]));
 
-                    outputCollector.collect(tempKeyPair, value);
+                    context.write(tempKeyPair, value);
                 }
             }
         }
     }
 
-    static class TempReducer extends MapReduceBase implements Reducer<TempKeyPair, Text, TempKeyPair, Text> {
+    static class TempReducer extends Reducer<TempKeyPair, Text, TempKeyPair, Text> {
         @Override
-        public void reduce(TempKeyPair key, Iterator<Text> values, OutputCollector<TempKeyPair, Text> outputCollector, Reporter reporter) throws IOException {
-            while (values.hasNext()) {
-                outputCollector.collect(key, values.next());
+        protected void reduce(TempKeyPair key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+            for (Text value : values) {
+                context.write(key, value);
             }
         }
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         if (args.length != 2) {
             System.out.println("need: input file and output dir.");
-            System.out.println("eg: {HADOOP_HOME}/bin/hadoop jar /home/hadoop/tempStat.jar /temp.txt /output/temp/");
+            System.out.println("eg: {HADOOP_HOME}/bin/hadoop jar /home/hadoop/tempStat.jar com.hewentian.hadoop.mr.TempJob /temp.txt /output/temp/");
             System.exit(1);
         }
 
-        JobConf jobConf = new JobConf(TempJob.class);
-        jobConf.setJobName("temperature stat demo");
+        try {
+            Job job = Job.getInstance();
+            job.setJobName("temperature stat demo");
+            job.setJarByClass(TempJob.class);
 
-        jobConf.setMapperClass(TempMapper.class);
-        jobConf.setReducerClass(TempReducer.class);
-        jobConf.setOutputKeyClass(TempKeyPair.class);
-        jobConf.setOutputValueClass(Text.class);
+            job.setMapperClass(TempMapper.class);
+            job.setReducerClass(TempReducer.class);
+            job.setOutputKeyClass(TempKeyPair.class);
+            job.setOutputValueClass(Text.class);
 
-        jobConf.setNumReduceTasks(3); // 只有3个年份:2016, 2017, 2018
-        jobConf.setPartitionerClass(TempYearPartition.class);
-        jobConf.setOutputKeyComparatorClass(TempSort.class);
-        jobConf.setOutputValueGroupingComparator(TempGroup.class);
+            job.setNumReduceTasks(3); // 只有3个年份:2016, 2017, 2018
+            job.setPartitionerClass(TempYearPartition.class);
+            job.setSortComparatorClass(TempSort.class);
+            job.setGroupingComparatorClass(TempGroup.class);
 
-        FileInputFormat.addInputPath(jobConf, new Path(args[0]));
-        FileOutputFormat.setOutputPath(jobConf, new Path(args[1]));
+            FileInputFormat.addInputPath(job, new Path(args[0]));
+            FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
-        JobClient.runJob(jobConf);
+            System.exit(job.waitForCompletion(true) ? 0 : 1);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

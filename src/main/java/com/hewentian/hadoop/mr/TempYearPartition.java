@@ -1,8 +1,7 @@
 package com.hewentian.hadoop.mr;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.Partitioner;
+import org.apache.hadoop.mapreduce.Partitioner;
 
 /**
  * <p>
@@ -13,14 +12,9 @@ import org.apache.hadoop.mapred.Partitioner;
  * @date 2019-01-03 09:23:03
  * @since JDK 1.8
  */
-public class TempYearPartition implements Partitioner<TempKeyPair, Text> {
+public class TempYearPartition extends Partitioner<TempKeyPair, Text> {
     @Override
     public int getPartition(TempKeyPair tempKeyPair, Text text, int i) {
         return (tempKeyPair.getYear() * 127) % i;
-    }
-
-    @Override
-    public void configure(JobConf jobConf) {
-
     }
 }

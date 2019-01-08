@@ -1,4 +1,4 @@
-package com.hewentian.hadoop;
+package com.hewentian.hadoop.utils;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.*;

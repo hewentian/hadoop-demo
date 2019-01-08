@@ -3,14 +3,10 @@ package com.hewentian.hadoop.mr;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reducer;
-import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
 /**
@@ -22,19 +18,19 @@ import java.util.Set;
  * @date 2018-12-21 16:28:40
  * @since JDK 1.8
  */
-public class QqRecommendReducer extends MapReduceBase implements Reducer<Text, Text, Text, Text> {
+public class QqRecommendReducer extends Reducer<Text, Text, Text, Text> {
     @Override
-    public void reduce(Text key, Iterator<Text> values, OutputCollector<Text, Text> outputCollector, Reporter reporter) throws IOException {
+    protected void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
         Set<String> set = new HashSet<String>();
-        while (values.hasNext()) {
-            set.add(values.next().toString());
+        for (Text t : values) {
+            set.add(t.toString());
         }
 
         if (CollectionUtils.isNotEmpty(set)) {
             for (String name : set) {
                 for (String other : set) {
                     if (!StringUtils.equals(name, other)) {
-                        outputCollector.collect(new Text(name), new Text(other));
+                        context.write(new Text(name), new Text(other));
                     }
                 }
             }
