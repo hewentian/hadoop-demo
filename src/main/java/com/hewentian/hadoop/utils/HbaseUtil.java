@@ -103,12 +103,40 @@ public class HbaseUtil {
         table.put(put);
     }
 
-    public static List<User> scanTable(String tableName_) throws IOException {
+    /**
+     * 遍历表中的数据，可以指定遍历的部分
+     *
+     * @param tableName_
+     * @param startRow
+     * @param stopRow
+     * @param family
+     * @param qualifier
+     * @return
+     * @throws IOException
+     */
+    public static List<User> scanTable(String tableName_, String startRow, String stopRow, String family, String qualifier) throws IOException {
         List<User> users = new ArrayList<User>();
 
         TableName tableName = TableName.valueOf(tableName_);
         Table table = getConnection().getTable(tableName);
-        ResultScanner results = table.getScanner(new Scan());
+
+        Scan scan = new Scan();
+
+        if (StringUtils.isNotBlank(startRow)) {
+            scan.setStartRow(startRow.getBytes());
+        }
+        if (StringUtils.isNotBlank(stopRow)) {
+            scan.setStopRow(stopRow.getBytes());
+        }
+
+        // 是否有指定遍历指定的列或列族
+        if (StringUtils.isNotBlank(family) && StringUtils.isNotBlank(qualifier)) {
+            scan.addColumn(Bytes.toBytes(family), Bytes.toBytes(qualifier));
+        } else if (StringUtils.isNotBlank(family) && StringUtils.isBlank(qualifier)) {
+            scan.addFamily(Bytes.toBytes(family));
+        }
+
+        ResultScanner results = table.getScanner(scan);
 
         for (Result result : results) {
 //            显示未解析的数据
@@ -186,7 +214,18 @@ public class HbaseUtil {
         return user;
     }
 
-    public static String getCellData(String tableName_, String rowKey, String family, String qualifier) throws IOException {
+    /**
+     * 查询指定列的数据
+     *
+     * @param tableName_
+     * @param rowKey
+     * @param family
+     * @param qualifier
+     * @param maxVersions
+     * @return
+     * @throws IOException
+     */
+    public static String getCellData(String tableName_, String rowKey, String family, String qualifier, Integer maxVersions) throws IOException {
         TableName tableName = TableName.valueOf(tableName_);
         Table table = getConnection().getTable(tableName);
 
@@ -200,6 +239,11 @@ public class HbaseUtil {
         }
 
         get.setCheckExistenceOnly(false);
+
+        if (null != maxVersions) {
+            get.setMaxVersions(maxVersions.intValue());
+        }
+
         result = table.get(get);
 
         byte[] value = result.getValue(Bytes.toBytes(family), Bytes.toBytes(qualifier));
@@ -238,5 +282,20 @@ public class HbaseUtil {
 
         admin.disableTable(tableName);
         admin.deleteTable(tableName);
+    }
+
+    /**
+     * @param tableName_ 表名
+     * @throws IOException
+     */
+    public static void descTable(String tableName_) throws IOException {
+        TableName tableName = TableName.valueOf(tableName_);
+        Table table = getConnection().getTable(tableName);
+
+        HTableDescriptor hTableDescriptor = table.getTableDescriptor();
+        HColumnDescriptor[] hColumnDescriptors = hTableDescriptor.getColumnFamilies();
+        for (HColumnDescriptor col : hColumnDescriptors) {
+            System.out.println(col.getNameAsString());
+        }
     }
 }

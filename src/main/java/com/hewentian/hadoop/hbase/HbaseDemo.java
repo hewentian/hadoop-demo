@@ -47,7 +47,8 @@ public class HbaseDemo {
     }
 
     public static void testScanTable() throws IOException {
-        List<User> users = HbaseUtil.scanTable(tableName_);
+        // 遍历所有
+        List<User> users = HbaseUtil.scanTable(tableName_, null, null, null, null);
         log.info("user.size: " + users.size());
 
         for (User user : users) {
@@ -57,6 +58,30 @@ public class HbaseDemo {
         // output:
         // User{id='001', username='张三', gender='女', phone='12345', birthday='1990-01-20', email='zhansan@qq.com', address='北京市丰台区'}
         // User{id='002', username='李四', gender='男', phone='67890', birthday='1991-02-21', email='lisi@qq.com', address='广州市天河区'}
+
+        // 遍历指定的列
+        users = HbaseUtil.scanTable(tableName_, null, null, "info", "username");
+        log.info("user.size: " + users.size());
+
+        for (User user : users) {
+            log.info(user);
+        }
+
+        // output:
+        // User{id='001', username='张三', gender='null', phone='null', birthday='null', email='null', address='null'}
+        // User{id='002', username='李四', gender='null', phone='null', birthday='null', email='null', address='null'}
+
+        // 遍历指定的列族
+        users = HbaseUtil.scanTable(tableName_, null, null, "info", null);
+        log.info("user.size: " + users.size());
+
+        for (User user : users) {
+            log.info(user);
+        }
+
+        // output:
+        // User{id='001', username='张三', gender='女', phone='null', birthday='1990-01-20', email='null', address='null'}
+        // User{id='002', username='李四', gender='男', phone='null', birthday='1991-02-21', email='null', address='null'}
     }
 
     public static void testGetDataByRowKey() throws IOException {
@@ -68,7 +93,7 @@ public class HbaseDemo {
     }
 
     public static void testGetCellData() throws IOException {
-        String value = HbaseUtil.getCellData(tableName_, "001", "contact", "email");
+        String value = HbaseUtil.getCellData(tableName_, "001", "contact", "email", null);
         log.info(value);
 
         // output:
@@ -110,6 +135,10 @@ public class HbaseDemo {
         HbaseUtil.deleteTable(tableName_);
     }
 
+    public static void testDescTable() throws IOException {
+        HbaseUtil.descTable(tableName_);
+    }
+
     public static void main(String[] args) {
         try {
             testCreateTable();
@@ -119,6 +148,7 @@ public class HbaseDemo {
             testGetCellData();
             testDeleteByRowKey();
             testDeleteTable();
+            testDescTable();
         } catch (IOException e) {
             log.error(e.getMessage(), e);
         } finally {
