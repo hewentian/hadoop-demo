@@ -60,18 +60,19 @@ public class ZookeeperDemo {
 
     public static void testSetData() throws KeeperException, InterruptedException {
         // 更新前
-        byte[] data = ZookeeperUtil.getData(persistentNode, true, null);
-        System.out.println("nodeValue: " + new String(data));
+        Stat stat = new Stat();
+        byte[] data = ZookeeperUtil.getData(persistentNode, true, stat);
+        System.out.println("nodeValue: " + new String(data) + ", " + stat.getVersion());
 
         // 更新node中的数据，并再次将其读出
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String newValue = "I am persistent " + df.format(new Date());
-        Stat stat = ZookeeperUtil.setData(persistentNode, newValue.getBytes(), -1);
+        stat = ZookeeperUtil.setData(persistentNode, newValue.getBytes(), -1);
         System.out.println(stat.getVersion());
 
         // 更新后
-        data = ZookeeperUtil.getData(persistentNode, true, null);
-        System.out.println("nodeValue: " + new String(data));
+        data = ZookeeperUtil.getData(persistentNode, true, stat);
+        System.out.println("nodeValue: " + new String(data) + ", " + stat.getVersion());
     }
 
     public static void testDelete() throws KeeperException, InterruptedException {
