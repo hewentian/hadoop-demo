@@ -19,8 +19,6 @@ import org.apache.zookeeper.ZooKeeper;
 /**
  * <p>
  * <b>ServiceProvider</b> 是 服务提供者，用于发布RMI服务。
- * 我们首先需要使用ZooKeeper的客户端工具创建一个持久性 ZNode，名为“/registry”，该节点是不存放任何数据的，可使用如下命令创建：
- * create /registry null
  * </p>
  *
  * @author <a href="mailto:wentian.he@qq.com">hewentian</a>
@@ -37,6 +35,7 @@ public class ServiceProvider {
         if (url != null) {
             ZooKeeper zk = connectServer();
             if (zk != null) {
+                checkParentPath(zk);
                 createNode(zk, url);
             }
         }
@@ -77,6 +76,23 @@ public class ServiceProvider {
         }
 
         return zk;
+    }
+
+    /**
+     * 检查父目录是否存在，如果不存在则创建，我们也可以使用ZooKeeper的客户端工具创建：
+     * create /registry null
+     *
+     * @param zk
+     */
+    public void checkParentPath(ZooKeeper zk) {
+        try {
+            if (zk.exists(Constant.ZK_REGISTRY_PATH, false) == null) {
+                zk.create(Constant.ZK_REGISTRY_PATH, null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                log.debug(String.format("create zookeeper node: %s", Constant.ZK_REGISTRY_PATH));
+            }
+        } catch (KeeperException | InterruptedException e) {
+            log.error(e.getMessage(), e);
+        }
     }
 
     private void createNode(ZooKeeper zk, String url) {

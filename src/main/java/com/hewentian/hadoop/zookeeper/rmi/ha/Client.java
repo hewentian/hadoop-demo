@@ -20,7 +20,7 @@ public class Client {
 
         while (true) {
             HelloService helloService = consumer.lookup();
-            String now = DateFormatUtils.format(new Date(), "YYYY-MM-dd HH:mm:ss");
+            String now = DateFormatUtils.format(new Date(), "yyyy-MM-dd HH:mm:ss");
             String result = helloService.sayHello("Tim");
 
             System.out.println(now + " " + result);

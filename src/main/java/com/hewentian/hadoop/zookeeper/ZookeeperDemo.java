@@ -51,6 +51,7 @@ public class ZookeeperDemo {
     public static void testExists() throws KeeperException, InterruptedException {
         System.out.println(ZookeeperUtil.exists(persistentNode, true));
         System.out.println(ZookeeperUtil.exists(ephemeralNode, true));
+        System.out.println(ZookeeperUtil.exists("/not_exists", true));
     }
 
     public static void testGetData() throws KeeperException, InterruptedException {

@@ -49,10 +49,10 @@ public class ServiceConsumer {
             String url;
             if (size == 1) {
                 url = urlList.get(0);
-                log.debug(String.format("using only url: %s", url));
+                log.info(String.format("using only url: %s", url));
             } else {
                 url = urlList.get(ThreadLocalRandom.current().nextInt(size)); // 随机获取一个元素
-                log.debug(String.format("using random url: %s", url));
+                log.info(String.format("using random url: %s", url));
             }
 
             service = lookupService(url);
