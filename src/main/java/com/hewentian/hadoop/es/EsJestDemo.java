@@ -8,6 +8,7 @@ import io.searchbox.action.BulkableAction;
 import io.searchbox.core.*;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.log4j.Logger;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 
@@ -44,7 +45,7 @@ public class EsJestDemo {
         }
     }
 
-    public static void deleteteIndex() {
+    public static void deleteIndex() {
         boolean res = EsJestUtil.deleteIndex(indexName);
         log.info("res: " + res);
     }
@@ -119,7 +120,7 @@ public class EsJestDemo {
         tags.add("student");
         tags.add("programmer");
         source.add("tags", tags);
-        source.addProperty("birthday", "1989-06-30 11:22:33");
+//        source.addProperty("birthday", "1989-06-30 11:22:33");
 
         try {
             source.addProperty("birthday", DateUtils.parseDate("1989-06-30 11:22:33", "yyyy-MM-dd HH:mm:ss").getTime());
@@ -204,7 +205,7 @@ public class EsJestDemo {
 
         JsonObject mustField1 = new JsonObject();
         JsonObject name = new JsonObject();
-        name.addProperty("name", "Tim");
+        name.addProperty("name", "Tim Ho");
         mustField1.add("term", name);
 
         json.add("query", query);
@@ -221,20 +222,39 @@ public class EsJestDemo {
         }
 
         log.info("total:" + searchResult.getTotal());
-        List<EsUser> list = searchResult.getSourceAsObjectList(EsUser.class, true);
-        list.forEach(h -> log.info(h));
+        List<SearchResult.Hit<JsonObject, Void>> hits = searchResult.getHits(JsonObject.class, true);
+        hits.forEach(h -> log.info(h.id + " " + h.source));
     }
 
     public static void search2() {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        // searchSourceBuilder.query(QueryBuilders.matchQuery("name", "Tim"));
-        searchSourceBuilder.query(QueryBuilders.wildcardQuery("name", "Tim*"));
+
+        // 完全匹配
+//         searchSourceBuilder.query(QueryBuilders.matchQuery("name", "Tim"));
+
+        // 通配符查询
+//        searchSourceBuilder.query(QueryBuilders.wildcardQuery("name", "Tim*"));
+
+        // 多条件或查询
+//        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+//        boolQueryBuilder.should(QueryBuilders.termQuery("name", "Tim"));
+//        boolQueryBuilder.should(QueryBuilders.termQuery("age", 21));
+//        searchSourceBuilder.query(boolQueryBuilder);
+
+        // 多条件与查询
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        boolQueryBuilder.must(QueryBuilders.termQuery("name", "Tim Ho"));
+        boolQueryBuilder.must(QueryBuilders.termQuery("age", 21));
+        searchSourceBuilder.query(boolQueryBuilder);
+
+        searchSourceBuilder.from(0);
+        searchSourceBuilder.size(10);
 
         SearchResult searchResult = EsJestUtil.search(indexName, typeName, searchSourceBuilder);
 
         log.info("total:" + searchResult.getTotal());
-        List<EsUser> list = searchResult.getSourceAsObjectList(EsUser.class, true);
-        list.forEach(h -> log.info(h));
+        List<SearchResult.Hit<JsonObject, Void>> hits = searchResult.getHits(JsonObject.class, true);
+        hits.forEach(h -> log.info(h.id + " " + h.source));
     }
 
     public static void deleteDoc() {
@@ -271,23 +291,23 @@ public class EsJestDemo {
     }
 
     public static void main(String[] args) throws Exception {
-//         createIndex();
-//         deleteteIndex();
-//         putMappings();
-//         deleteMapping();
-//         getMapping();
-//         addDoc1();
-//         addDoc2();
-//         addDoc3();
-//         getDoc();
-//         updateDoc1();
-//         updateDoc2();
-//         updateDoc3();
-//         Thread.sleep(2000); // 插入后，要等1到2秒才能查询出来
-//         search1();
-//         search2();
-//         deleteDoc();
-//         bulkUpdate();
+//        createIndex();
+//        deleteIndex();
+//        putMappings();
+//        deleteMapping();
+//        getMapping();
+//        addDoc1();
+//        addDoc2();
+//        addDoc3();
+//        getDoc();
+//        updateDoc1();
+//        updateDoc2();
+//        updateDoc3();
+//        Thread.sleep(2000); // 插入后，要等1到2秒才能查询出来
+//        search1();
+//        search2();
+//        deleteDoc();
+//        bulkUpdate();
 //         http://www.xdemo.org/lucene4-8-ikanalyzer-springmvc4-jsoup-quartz/
     }
 }
