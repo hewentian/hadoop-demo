@@ -20,6 +20,7 @@ public class RedisUtil {
     private static String host;
     private static int port;
     private static String passwd;
+    private static int index;
 
     private static JedisPool jedisPool;
 
@@ -28,6 +29,7 @@ public class RedisUtil {
             host = Config.get("redis.host", "localhost");
             port = Integer.valueOf(Config.get("redis.port", "6379"));
             passwd = Config.get("redis.passwd", "");
+            index = Integer.valueOf(Config.get("redis.index", "0"));
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
@@ -38,6 +40,8 @@ public class RedisUtil {
 
         // 密码验证，如果你没有设置redis密码可不验证
         jedis.auth(passwd);
+
+//        jedis.select(index); // 也可以在使用的时候再选择哪一个库
 
         return jedis;
     }

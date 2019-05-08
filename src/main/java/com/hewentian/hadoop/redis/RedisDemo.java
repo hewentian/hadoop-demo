@@ -2,6 +2,8 @@ package com.hewentian.hadoop.redis;
 
 import com.hewentian.hadoop.utils.RedisUtil;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.ScanParams;
+import redis.clients.jedis.ScanResult;
 
 import java.util.*;
 
@@ -16,8 +18,9 @@ import java.util.*;
  */
 public class RedisDemo {
     public static void main(String[] args) {
-        test();
-        testPool();
+//        test();
+//        testPool();
+        testScan();
     }
 
     private static void test() {
@@ -110,5 +113,39 @@ public class RedisDemo {
 
         RedisUtil.close(jedis);
         RedisUtil.destroyPool();
+    }
+
+    public static void testScan() {
+        Jedis jedis = RedisUtil.getJedis();
+
+        // 选择第0号库
+        jedis.select(0);
+
+        // 先插入10个有相同前缀的 STRING KEY
+        String keyPrefix = "H:W:T:SUCCESS_";
+
+//        for (int i = 0; i < 10; i++) {
+//            jedis.set(keyPrefix + i, "" + i);
+//        }
+
+        ScanParams sp = new ScanParams();
+        sp.match(keyPrefix + "*").count(5);
+
+        ScanResult<String> scan;
+        String stringCursor = "0";
+
+        do {
+            System.out.println("stringCursor " + stringCursor);
+
+            scan = jedis.scan(stringCursor, sp);
+            stringCursor = scan.getStringCursor();
+
+            for (String k : scan.getResult()) {
+                String v = jedis.get(k);
+                System.out.println("KEY: " + k + ", VALUE: " + v);
+            }
+        } while (!"0".equals(stringCursor));
+
+        System.out.println("\nend.");
     }
 }
