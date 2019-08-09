@@ -241,10 +241,17 @@ public class EsJestDemo {
 //        boolQueryBuilder.should(QueryBuilders.termQuery("age", 21));
 //        searchSourceBuilder.query(boolQueryBuilder);
 
+        // 单条件或
+        BoolQueryBuilder nameOr = QueryBuilders.boolQuery();
+        nameOr.should(QueryBuilders.matchQuery("name", "Tim"));
+        nameOr.should(QueryBuilders.matchQuery("name", "Ho"));
+
         // 多条件与查询
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
         boolQueryBuilder.must(QueryBuilders.termQuery("name", "Tim Ho"));
+//        boolQueryBuilder.must(nameOr);
         boolQueryBuilder.must(QueryBuilders.termQuery("age", 21));
+//        boolQueryBuilder.must(QueryBuilders.rangeQuery("age").gte(20).lte(28));
         searchSourceBuilder.query(boolQueryBuilder);
 
         searchSourceBuilder.from(0);
@@ -288,6 +295,28 @@ public class EsJestDemo {
 
         boolean res = EsJestUtil.bulkUpdate(actions);
         log.info("res: " + res);
+    }
+
+    /**
+     * 根据多个ID查询
+     */
+    public static void searchByIds() {
+        String[] ids = new String[]{"1", "2", "3"};
+
+        BoolQueryBuilder idBoolQueryBuilder = QueryBuilders.boolQuery();
+        idBoolQueryBuilder.should(QueryBuilders.idsQuery().addIds(ids));
+
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(idBoolQueryBuilder);
+
+        searchSourceBuilder.from(0);
+        searchSourceBuilder.size(10);
+
+        SearchResult searchResult = EsJestUtil.search(indexName, typeName, searchSourceBuilder);
+
+        log.info("total:" + searchResult.getTotal());
+        List<SearchResult.Hit<JsonObject, Void>> hits = searchResult.getHits(JsonObject.class, true);
+        hits.forEach(h -> log.info(h.id + " " + h.source));
     }
 
     public static void main(String[] args) throws Exception {
