@@ -17,3 +17,7 @@ bin/
 .settings/
 .eclipse
 META-INF/
+.idea/
+*.iws
+*.iml
+*.ipr
