@@ -13,7 +13,6 @@ import com.mongodb.client.*;
 import com.mongodb.client.model.*;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
@@ -164,64 +163,6 @@ public class MongoDemo {
 
         long count = deleteResult.getDeletedCount();
         log.info("---------- 删除 " + count + " 条数据成功");
-    }
-
-    /**
-     * 遍历集合，不要使用skip、limit来分页操作。如果集合很大，则会很慢。这里介绍一种比较快的方法
-     */
-    public static void scanCollection() {
-        BsonDocument sort = new BsonDocument("_id", new BsonInt32(1));
-
-        // 开始的collection记录的_id，根据_id分段来查询，每一段都获取之后，会将最后一个的_id赋给它
-        String startId = "2"; // 从指定的位置开始遍历
-//        startId = null;  // 遍历全库
-        long totalCount;
-
-        if (StringUtils.isBlank(startId)) {
-            startId = mongoCollection.find().projection(BsonDocument.parse("{'_id':1}")).sort(sort).limit(1).first()
-                    .getString("_id");
-            totalCount = mongoCollection.count();
-        } else {
-            totalCount = mongoCollection.count(new BasicDBObject("_id", new BasicDBObject("$gte", startId)));
-        }
-
-        log.info("总记录数： " + totalCount);
-
-        int pageSize = 3;
-        long pageCount = totalCount / pageSize;
-        int modCount = (int) (totalCount % pageSize);
-
-        for (int i = 0; i <= pageCount; i++) {
-            System.out.println("当前页：" + i);
-
-            if (modCount == 0 && i == pageCount) {
-                break;
-            }
-            if (i == pageCount) {
-                pageSize = modCount;
-            }
-
-            BasicDBObject query;
-            if (i == 0) {
-                // 第一次才会进入这里
-                query = new BasicDBObject("_id", new BasicDBObject("$gte", startId));
-            } else {
-                query = new BasicDBObject("_id", new BasicDBObject("$gt", startId));
-            }
-
-            MongoCursor<Document> dbCursor = mongoCollection.find(query).sort(sort).skip(0).limit(pageSize).iterator();
-
-            while (dbCursor.hasNext()) {
-                Document doc = dbCursor.next();
-                String _id = doc.getString("_id");
-
-                if (!dbCursor.hasNext()) {
-                    startId = _id;
-                }
-
-                System.out.println(doc);
-            }
-        }
     }
 
     /**
@@ -493,7 +434,6 @@ public class MongoDemo {
             andQuery();
             orQuery();
             groupQuery();
-            scanCollection();
             dateQuery();
             insertByte();
             readByte();
