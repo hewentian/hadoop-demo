@@ -36,6 +36,7 @@ public class HdfsClientUtil {
         try {
             // 最后的hadoop表示的是hadoop集群安装的Linux用户
             // 不提供用户名也可以，但是要在 hdfs-site.xml 中将 dfs.permissions.enabled 设为 false
+            // 注意：在hdfs是高可用HA的情况下，要将端口9000改成8020
             fileSystem = FileSystem.get(new URI("hdfs://hadoop-host-master:9000"), conf, "hadoop");
         } catch (Exception e) {
             log.error(e.getMessage(), e);
