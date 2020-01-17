@@ -4,6 +4,14 @@ import com.hewentian.spark.util.SparkUtil
 
 object WordCount {
   def main(args: Array[String]): Unit = {
+    // 设置访问hdfs的帐号，本机帐号可能没有hdfs的写权限
+    // 当访问hdfs时，将按以下顺序获取访问hdfs的帐户，源码中commit()方法有详细的描述:
+    // 1.System.getenv("HADOOP_USER_NAME")
+    // 2.System.getProperty("HADOOP_USER_NAME")
+    // 3.use the OS user
+    // 这个设置必须是main方法的第一行代码，否则设置不生效
+    System.setProperty("HADOOP_USER_NAME", "hadoop");
+
     val spark = SparkUtil.getSparkSession()
 
     // 指定本地文件路径，如果spark是集群模式，需要每个节点上对应路径下都要有此文件。或者使用hdfs
