@@ -27,17 +27,61 @@ public class HdfsClientUtil {
     private static FileSystem fileSystem = null;
 
     static {
+//        initFileSystem();
+        initFileSystemHA();
+    }
+
+    /**
+     * 当hdfs是非HA的时候，端口是9000
+     */
+    private static void initFileSystem() {
+        String hdfsUser = Config.get("hdfs.user", null);
+        String hdfsReplication = Config.get("hdfs.replication", null);
+        String hdfsUrl = Config.get("hdfs.url", null);
+
         // new Configuration() 的时候，它就会去加载jar包中的hdfs-default.xml
         // 然后再加载classpath下的hdfs-site.xml
         Configuration conf = new Configuration();
-//        conf.set("fs.defaultFS","hdfs://hadoop-host-master:9000");
-        conf.set("dfs.replication", "2");
+//        conf.set("fs.defaultFS", hdfsUrl);
+        conf.set("dfs.replication", hdfsReplication);
 
         try {
             // 最后的hadoop表示的是hadoop集群安装的Linux用户
             // 不提供用户名也可以，但是要在 hdfs-site.xml 中将 dfs.permissions.enabled 设为 false
-            // 注意：在hdfs是高可用HA的情况下，要将端口9000改成8020
-            fileSystem = FileSystem.get(new URI("hdfs://hadoop-host-master:9000"), conf, "hadoop");
+            fileSystem = FileSystem.get(new URI(hdfsUrl), conf, hdfsUser);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 当hdfs是HA的时候，端口是8020
+     */
+    private static void initFileSystemHA() {
+        String hdfsUser = Config.get("hdfs.user", null);
+        String hdfsReplication = Config.get("hdfs.replication", null);
+        String nameservices = Config.get("hdfs.ha.nameservices", null);
+        String namenodes = Config.get("hdfs.ha.namenodes", null);
+        String namenodeRrpcAddress = Config.get("hdfs.ha.namenode.rpc-address", null);
+
+        String[] namenodesArray = namenodes.split(",");
+        String[] namenodeRrpcAddressArray = namenodeRrpcAddress.split(",");
+
+        Configuration conf = new Configuration();
+        conf.set("fs.defaultFS", "hdfs://" + nameservices);
+        conf.set("dfs.replication", hdfsReplication);
+
+        conf.set("dfs.nameservices", nameservices);
+        conf.set("dfs.ha.namenodes." + nameservices, namenodes);
+        conf.set("dfs.namenode.rpc-address." + nameservices + "." + namenodesArray[0], namenodeRrpcAddressArray[0]);
+        conf.set("dfs.namenode.rpc-address." + nameservices + "." + namenodesArray[1], namenodeRrpcAddressArray[1]);
+        conf.set("dfs.client.failover.proxy.provider." + nameservices,
+                "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider");
+
+        String hdfsUrl = "hdfs://" + nameservices + ":" + 8020;
+
+        try {
+            fileSystem = FileSystem.get(new URI(hdfsUrl), conf, hdfsUser);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
