@@ -22,10 +22,10 @@ public class HiveUtil {
     private HiveUtil() {
     }
 
-    private static String url = "jdbc:hive2://hadoop-host-master:10000/tim";
-    private static String username = "hadoop";
-    private static String password = "hadoop";
-    private static String driverClassName = "org.apache.hive.jdbc.HiveDriver";
+    private static String url = Config.get("hive.url", null);
+    private static String user = Config.get("hive.user", null);
+    private static String password = Config.get("hive.password", null);
+    private static String driverClassName = Config.get("hive.driver-class-name", null);
 
     private static Connection conn = null;
 
@@ -59,7 +59,7 @@ public class HiveUtil {
         Connection conn = null;
 
         try {
-            conn = DriverManager.getConnection(url, username, password); // 获取连接
+            conn = DriverManager.getConnection(url, user, password); // 获取连接
         } catch (Exception e) {
             log.error(e);
         }

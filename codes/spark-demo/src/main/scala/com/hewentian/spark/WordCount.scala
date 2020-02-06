@@ -10,7 +10,7 @@ object WordCount {
     // 2.System.getProperty("HADOOP_USER_NAME")
     // 3.use the OS user
     // 这个设置必须是main方法的第一行代码，否则设置不生效
-    System.setProperty("HADOOP_USER_NAME", "hadoop");
+    System.setProperty("HADOOP_USER_NAME", SparkUtil.hdfsUser);
 
     val spark = SparkUtil.getSparkSession()
 
