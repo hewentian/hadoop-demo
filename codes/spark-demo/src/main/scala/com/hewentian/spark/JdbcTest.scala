@@ -1,5 +1,7 @@
 package com.hewentian.spark
 
+import java.util.Properties
+
 import com.hewentian.spark.util.SparkUtil
 
 /**
@@ -29,12 +31,35 @@ object JdbcTest {
     // Looks the schema of this DataFrame.
     df.printSchema()
 
+    df.show()
+
     // Counts student by age
     val countsByAge = df.groupBy("age").count()
     countsByAge.show()
 
     // Saves countsByAge to hdfs in the JSON format.
     countsByAge.write.format("json").save(SparkUtil.hdfsUrl + "countsByAge")
+
+    val queryStr = """(select * from student where id <= 5) as stud"""
+
+    spark.read
+      .format("jdbc")
+      .option("url", SparkUtil.jdbcUrl)
+      .option("driver", SparkUtil.jdbcDriver)
+      .option("user", SparkUtil.jdbcUser)
+      .option("password", SparkUtil.jdbcPassword)
+      .option("dbtable", queryStr)
+      .load()
+      .show()
+
+    val connectionProperties = new Properties()
+    connectionProperties.put("driver", SparkUtil.jdbcDriver)
+    connectionProperties.put("user", SparkUtil.jdbcUser)
+    connectionProperties.put("password", SparkUtil.jdbcPassword)
+
+    var predicates = Array("id <= 5 AND sex = 1")
+
+    spark.read.jdbc(SparkUtil.jdbcUrl, "student", predicates, connectionProperties).show()
 
     spark.stop()
   }
