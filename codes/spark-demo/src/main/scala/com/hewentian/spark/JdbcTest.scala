@@ -10,7 +10,7 @@ import com.hewentian.spark.util.SparkUtil
   */
 object JdbcTest {
   def main(args: Array[String]): Unit = {
-    System.setProperty("HADOOP_USER_NAME", SparkUtil.hdfsUser);
+    System.setProperty("HADOOP_USER_NAME", SparkUtil.hdfsUser)
 
     val spark = SparkUtil.getSparkSession()
 

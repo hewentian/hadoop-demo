@@ -13,8 +13,8 @@ object TextSearch {
 
     val textFile = spark.sparkContext.textFile(SparkUtil.hdfsUrl + "mysql.log")
 
-    var colName = "line";
-    var column = new Column(colName);
+    val colName = "line"
+    val column = new Column(colName)
 
     // Creates a DataFrame having a single column named "line"
     val df = textFile.toDF(colName)

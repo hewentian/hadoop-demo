@@ -1,5 +1,6 @@
 package com.hewentian.spark.util
 
+import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 
 object SparkUtil {
@@ -22,6 +23,8 @@ object SparkUtil {
   val hdfsUrl = hdfsBaseUrlHa + "spark/"
 
   val hdfsUser = "hadoop"
+
+  val checkpoint = hdfsUrl + "checkpoint"
 
   // jdbc连接相关信息
   val jdbcUrl = "jdbc:mysql://mysql.hewentian.com:3306/bfg_db?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull"
@@ -69,5 +72,16 @@ object SparkUtil {
     }
 
     spark
+  }
+
+  def getSparkConf(): SparkConf = {
+    val sparkConf = new SparkConf().setAppName(appName)
+
+    if (ideaRun) {
+      sparkConf.setMaster(master)
+      sparkConf.setJars(Seq(jarPath))
+    }
+
+    sparkConf
   }
 }
