@@ -12,3 +12,22 @@ spark访问hive
 
 3. 如果是打包成jar，使用spark-submit运行，是不需要将 hive-site.xml, core-site.xml 和 hdfs-site.xml放到src/main/resources目录下的
 
+
+如果Spark Streaming监控HDFS目录失败，问题的原因可能是：虚拟机的时间和物理机的时间是不同步的，导致物理机的IDEA的Spark Streaming监测不到虚拟机HDFS目录的数据。
+
+{HADOOP_HOME}/bin/hdfs dfs -put {HADOOP_HOME}/README.txt /spark/streaming
+用put，可能会产生 File does not exist: /spark/streaming/NOTICE.txt._COPYING_
+
+https://issues.apache.org/jira/browse/SPARK-4314
+
+[Reason]
+Intermediate file 200._COPYING_ is found by FileInputDStream interface, and exception throws when NewHadoopRDD
+ready to handle non-existent 200._COPYING_ file because file 200._COPYING_ is changed to file 200 when upload
+is finished
+
+maji2014 maji2014 added a comment - 26/Nov/14 01:56 - edited
+Discription for fileStream in textFileStream method is "HDFS directory to monitor for new file". To reproduce
+this scenario, upload the file into the monitoring hdfs directory through command like "hadoop fs -put filename /user/".
+do you think "hadoop fs -put filename /user/" is the wrong way? the first time, the upload filename is in intermediate
+partly written state "filename._COPYING_", and then the filename is changed when upload complete. But the intermediate
+partly is caught by spark. then the scenario appears. of course, you can also refer to conversation in the pull request.
