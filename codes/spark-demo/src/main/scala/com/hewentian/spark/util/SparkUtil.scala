@@ -32,6 +32,8 @@ object SparkUtil {
   val jdbcPassword = "iE1zNB?A91*YbQ9hK"
   val jdbcDriver = "com.mysql.jdbc.Driver"
 
+  val kafkaBrokers = "hadoop-host-master:9092,hadoop-host-slave-1:9092,hadoop-host-slave-2:9092"
+
   def getSparkSession(): SparkSession = {
     val builder = SparkSession
       .builder()
